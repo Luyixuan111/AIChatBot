@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:fitsSystemWindows="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- AppBarLayout 包裹 Toolbar，让其具备 Coordinator 滚动与点击优先 -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+
+        <com.google.android.material.appbar.MaterialToolbar
+            app:titleTextColor="?attr/colorOnSurface"
+            android:id="@+id/topAppBar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorSurface"
+            app:title="Chat"
+            app:titleCentered="true"
+            app:popupTheme="@style/ThemeOverlay.Material3.Light" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- 聊天列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/chatList"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="76dp"
+        android:overScrollMode="never"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+    <!-- 底部输入栏 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/inputBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom"
+        android:layout_margin="12dp"
+        app:cardElevation="6dp"
+        app:cardCornerRadius="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingStart="16dp"
+            android:paddingEnd="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/messageInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Message"
+                android:maxLines="4"
+                android:minHeight="0dp"
+                android:background="@android:color/transparent"
+                android:inputType="textCapSentences|textMultiLine"
+                android:imeOptions="actionSend" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/sendBtn"
+                style="@style/Widget.Material3.Button.Icon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@android:drawable/ic_menu_send"
+                app:cornerRadius="24dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
