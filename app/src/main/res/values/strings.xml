@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Chatbot</string>
+    <string name="hint_input_generic">Please Enter</string>
+    <string name="hint_input_hr">Please enter heart rate (bpm)</string>
+    <string name="hint_input_bp_sys">Please enter systolic pressure (mmHg)</string>
+    <string name="hint_input_bp_dia">Please enter diastolic pressure (mmHg)</string>
 </resources>

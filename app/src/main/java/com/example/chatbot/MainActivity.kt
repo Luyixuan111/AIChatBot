@@ -131,10 +131,16 @@ class MainActivity : AppCompatActivity() {
             .inflate(R.layout.bottomsheet_health_tools, null)
         dialog.setContentView(view)
 
-        view.findViewById<Chip>(R.id.chipVitals)
+        view.findViewById<Chip>(R.id.chipBP)
             .setOnClickListener {
-                appendBot("🩺Please enter your Blood Pressure/HR…")
-                dialog.dismiss()
+                appendBot("🩺 Please enter your Blood Pressure (e.g. 120/80 mmHg)")
+                showBpDialog()
+            }
+
+        view.findViewById<Chip>(R.id.chipHR)
+            .setOnClickListener {
+                appendBot("Please enter your Heart Rate (e.g. 72 bpm)")
+                showHrDialog()
             }
 
         view.findViewById<Chip>(R.id.chipMeds)
@@ -191,6 +197,54 @@ class MainActivity : AppCompatActivity() {
     private fun pushList() {
         adapter.submitList(rows.toList())
         chatList.scrollToPosition(adapter.itemCount - 1)
+    }
+
+    private fun showTextInputDialog(
+        title: String,
+        hint: String,
+        onConfirm: (String) -> Unit
+    ) {
+        val inputView = layoutInflater.inflate(R.layout.dialog_single_input, null)
+        val et = inputView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etValue)
+        et.hint = hint
+
+        val dlg = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setView(inputView)
+            .setPositiveButton("OK") { d, _ ->
+                val text = et.text.toString().trim()
+                if (text.isNotEmpty()) onConfirm(text)
+                d.dismiss()
+            }
+            .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
+            .create()
+
+        dlg.show()
+    }
+
+    // HR dialog – single input
+    private fun showHrDialog() {
+        showTextInputDialog(
+            title = "Enter Heart Rate",
+            hint = "e.g. 72 bpm"
+        ) { text ->
+            appendBot("❤️ Recorded heart rate: $text bpm")
+        }
+    }
+
+    // BP dialog – two-step input (systolic then diastolic)
+    private fun showBpDialog() {
+        showTextInputDialog(
+            title = "Enter Systolic Pressure",
+            hint = "e.g. 120 mmHg"
+        ) { sys ->
+            showTextInputDialog(
+                title = "Enter Diastolic Pressure",
+                hint = "e.g. 80 mmHg"
+            ) { dia ->
+                appendBot("🩺 Recorded blood pressure: $sys/$dia mmHg")
+            }
+        }
     }
 
     private fun fakeReply(userText: String): String =

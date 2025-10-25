@@ -26,11 +26,18 @@
             android:paddingTop="8dp">
 
             <com.google.android.material.chip.Chip
-                android:id="@+id/chipVitals"
+                android:id="@+id/chipBP"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 style="@style/Widget.Material3.Chip.Assist"
-                android:text="Log vitals"/>
+                android:text="Blood Pressure"/>
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipHR"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/Widget.Material3.Chip.Assist"
+                android:text="Heart Rate"/>
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipMeds"
