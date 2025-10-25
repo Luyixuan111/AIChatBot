@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_new_chat" android:title="New chat"/>
+        <item android:id="@+id/nav_history"  android:title="Chat history"/>
+    </group>
+
+    <item android:title="Health tools">
+        <menu>
+            <item android:id="@+id/nav_vitals"     android:title="Log vitals (BP/HR)"/>
+            <item android:id="@+id/nav_meds"       android:title="Medication reminders"/>
+            <item android:id="@+id/nav_caregiver"  android:title="Call caregiver"/>
+            <item android:id="@+id/nav_clinic"     android:title="Find nearby clinics"/>
+        </menu>
+    </item>
+</menu>

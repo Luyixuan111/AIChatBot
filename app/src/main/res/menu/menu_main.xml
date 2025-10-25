@@ -2,11 +2,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_new_chat"
-        android:title="New chat"
-        app:showAsAction="never" />
+        android:id="@+id/action_health_panel"
+        android:title="Health tools"
+        android:icon="@drawable/ic_medical_services_24"
+        app:showAsAction="ifRoom"/>
     <item
         android:id="@+id/action_clear"
         android:title="Clear"
-        app:showAsAction="never" />
+        app:showAsAction="never"/>
 </menu>
