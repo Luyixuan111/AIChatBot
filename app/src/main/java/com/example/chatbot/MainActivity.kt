@@ -42,6 +42,8 @@ class MainActivity : AppCompatActivity() {
 
     private var autoCallTimer: android.os.CountDownTimer? = null
 
+    private val MEDS_CHANNEL_ID = "meds_reminders"
+
     private val locationPermsLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
@@ -98,8 +100,19 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_meds -> {
-                    appendBot("💊 Medication reminders available here.")
-                    drawerLayout.close(); true
+                    drawerLayout.close()
+                    showMedsDialog()   // open the manager
+                    // also drop a chat summary
+                    val meds = loadMedList()
+                    if (meds.isEmpty()) {
+                        appendBot("💊 You have no medication reminders. Tap “Add” to create one.")
+                    } else {
+                        val top = meds.take(3).joinToString("\n") {
+                            "• ${it.name} ${it.dose} @ ${formatTime(it.hour, it.minute)} (${formatDays(it.days)})"
+                        }
+                        appendBot("💊 Your reminders:\n$top\n(Manage or add more in the Meds panel.)")
+                    }
+                    true
                 }
                 R.id.nav_caregiver -> {
                     appendBot("📞 Calling caregiver (demo).")
@@ -785,7 +798,244 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    // Medicine reminder
+    private data class MedReminder(
+        val id: String = UUID.randomUUID().toString(),
+        val name: String,
+        val dose: String,
+        val hour: Int,      // 0..23
+        val minute: Int,    // 0..59
+        val days: Set<Int>  // 1=Mon .. 7=Sun
+    )
 
+    private fun loadMedList(): MutableList<MedReminder> {
+        val sp = getSharedPreferences("chatbot_prefs", MODE_PRIVATE)
+        val raw = sp.getString("med_list", "[]") ?: "[]"
+        val arr = org.json.JSONArray(raw)
+        val list = mutableListOf<MedReminder>()
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            val daysJson = o.optJSONArray("days") ?: org.json.JSONArray()
+            val days = mutableSetOf<Int>()
+            for (k in 0 until daysJson.length()) days += daysJson.getInt(k)
+            list += MedReminder(
+                id = o.optString("id"),
+                name = o.optString("name"),
+                dose = o.optString("dose"),
+                hour = o.optInt("hour"),
+                minute = o.optInt("minute"),
+                days = days
+            )
+        }
+        return list
+    }
+
+    private fun saveMedList(list: List<MedReminder>) {
+        val arr = org.json.JSONArray()
+        list.forEach { m ->
+            val o = org.json.JSONObject()
+            o.put("id", m.id)
+            o.put("name", m.name)
+            o.put("dose", m.dose)
+            o.put("hour", m.hour)
+            o.put("minute", m.minute)
+            val daysArr = org.json.JSONArray()
+            m.days.sorted().forEach { d -> daysArr.put(d) }
+            o.put("days", daysArr)
+            arr.put(o)
+        }
+        val sp = getSharedPreferences("chatbot_prefs", MODE_PRIVATE)
+        sp.edit().putString("med_list", arr.toString()).apply()
+    }
+
+    private fun formatTime(h: Int, m: Int) = String.format("%02d:%02d", h, m)
+    private fun formatDays(days: Set<Int>): String {
+        if (days.isEmpty()) return "One-time"
+        val names = arrayOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+        return days.sorted().joinToString(", ") { names[it-1] }
+    }
+
+    private fun showMedsDialog() {
+        val content = layoutInflater.inflate(R.layout.dialog_meds_list, null)
+        val rv = content.findViewById<RecyclerView>(R.id.rvMeds)
+        val btnAdd = content.findViewById<Button>(R.id.btnAdd)
+
+        val data = loadMedList()
+        rv.layoutManager = LinearLayoutManager(this)
+        val adapter = MedAdapter(
+            data = data,
+            onEdit = { item -> showMedEditorDialog(initial = item) {
+                val fresh = loadMedList()
+                data.clear(); data.addAll(fresh); rv.adapter?.notifyDataSetChanged()
+            }},
+            onDelete = { item ->
+                val list = loadMedList().toMutableList()
+                val idx = list.indexOfFirst { it.id == item.id }
+                if (idx >= 0) {
+                    list.removeAt(idx); saveMedList(list)
+                    val di = data.indexOfFirst { it.id == item.id }
+                    if (di >= 0) { data.removeAt(di); rv.adapter?.notifyItemRemoved(di) }
+                    appendBot("🗑️ Deleted reminder: ${item.name} ${item.dose}")
+                }
+            }
+        )
+        rv.adapter = adapter
+
+        val dlg = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Medication reminders")
+            .setView(content)
+            .setNegativeButton("Close") { d, _ -> d.dismiss() }
+            .create()
+
+        btnAdd.setOnClickListener {
+            showMedEditorDialog(initial = null) {
+                val fresh = loadMedList()
+                data.clear(); data.addAll(fresh); rv.adapter?.notifyDataSetChanged()
+            }
+        }
+
+        dlg.show()
+    }
+
+    private inner class MedAdapter(
+        private val data: MutableList<MedReminder>,
+        val onEdit: (MedReminder) -> Unit,
+        val onDelete: (MedReminder) -> Unit
+    ) : RecyclerView.Adapter<MedAdapter.VH>() {
+
+        inner class VH(v: View) : RecyclerView.ViewHolder(v) {
+            val tvTitle = v.findViewById<TextView>(R.id.tvTitle)
+            val tvSub = v.findViewById<TextView>(R.id.tvSub)
+            val btnEdit = v.findViewById<Button>(R.id.btnEdit)
+            val btnDelete = v.findViewById<Button>(R.id.btnDelete)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+            val v = layoutInflater.inflate(R.layout.item_med, parent, false)
+            return VH(v)
+        }
+
+        override fun onBindViewHolder(h: VH, pos: Int) {
+            val m = data[pos]
+            h.tvTitle.text = "${m.name}  ${m.dose}"
+            h.tvSub.text = "${formatTime(m.hour, m.minute)} • ${formatDays(m.days)}"
+            h.btnEdit.setOnClickListener { onEdit(m) }
+            h.btnDelete.setOnClickListener {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                    .setMessage("Delete this reminder?")
+                    .setPositiveButton("Delete") { _, _ -> onDelete(m) }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+            // Quick tap on row to post a chat line (nice UX)
+            h.itemView.setOnClickListener {
+                appendBot("⏰ Reminder set: ${m.name} ${m.dose} @ ${formatTime(m.hour,m.minute)} (${formatDays(m.days)})")
+            }
+        }
+
+        override fun getItemCount() = data.size
+    }
+
+    private fun showMedEditorDialog(
+        initial: MedReminder? = null,
+        onSaved: (() -> Unit)? = null
+    ) {
+        val content = layoutInflater.inflate(R.layout.dialog_meds_editor, null)
+        val etName = content.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etName)
+        val etDose = content.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etDose)
+        val tvTime = content.findViewById<TextView>(R.id.tvTime)
+        val btnTime = content.findViewById<Button>(R.id.btnPickTime)
+        val btnDays = content.findViewById<Button>(R.id.btnPickDays)
+
+        var pickedHour = initial?.hour ?: 9
+        var pickedMinute = initial?.minute ?: 0
+        var pickedDays: MutableSet<Int> = (initial?.days ?: emptySet()).toMutableSet()
+
+        fun refreshTimeLabel() { tvTime.text = formatTime(pickedHour, pickedMinute) }
+        fun refreshDaysLabel() { btnDays.text = formatDays(pickedDays) }
+
+        etName.setText(initial?.name ?: "")
+        etDose.setText(initial?.dose ?: "")
+        refreshTimeLabel(); refreshDaysLabel()
+
+        btnTime.setOnClickListener {
+            val tp = android.app.TimePickerDialog(
+                this,
+                { _, h, m -> pickedHour = h; pickedMinute = m; refreshTimeLabel() },
+                pickedHour, pickedMinute, true
+            )
+            tp.show()
+        }
+
+        btnDays.setOnClickListener {
+            val labels = arrayOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+            val checked = BooleanArray(7) { i -> (i+1) in pickedDays }
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Repeat on")
+                .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                    if (isChecked) pickedDays += (which+1) else pickedDays -= (which+1)
+                }
+                .setPositiveButton("OK", null)
+                .setNegativeButton("Clear") { _, _ -> pickedDays.clear(); refreshDaysLabel() }
+                .show()
+                .also { refreshDaysLabel() }
+        }
+
+        val dlg = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(if (initial==null) "Add reminder" else "Edit reminder")
+            .setView(content)
+            .setPositiveButton("Save", null)
+            .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
+            .create()
+
+        dlg.setOnShowListener {
+            dlg.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = etName.text?.toString()?.trim().orEmpty()
+                val dose = etDose.text?.toString()?.trim().orEmpty()
+                if (name.isEmpty()) { etName.error = "Required"; return@setOnClickListener }
+                if (dose.isEmpty()) { etDose.error = "Required"; return@setOnClickListener }
+
+                val list = loadMedList().toMutableList()
+                val newItem = MedReminder(
+                    id = initial?.id ?: UUID.randomUUID().toString(),
+                    name = name, dose = dose,
+                    hour = pickedHour, minute = pickedMinute,
+                    days = pickedDays
+                )
+
+                val idx = list.indexOfFirst { it.id == newItem.id }
+                if (idx >= 0) list[idx] = newItem else list.add(0, newItem)
+                saveMedList(list)
+
+                appendBot("✅ ${if (idx>=0) "Updated" else "Added"} reminder: ${newItem.name} ${newItem.dose} @ ${formatTime(newItem.hour,newItem.minute)} (${formatDays(newItem.days)})")
+                dlg.dismiss()
+                onSaved?.invoke()
+            }
+        }
+
+        dlg.show()
+    }
+
+    private fun ensureNotifChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            val mgr = getSystemService(android.app.NotificationManager::class.java)
+            val ch = android.app.NotificationChannel(
+                MEDS_CHANNEL_ID,
+                "Medication Reminders",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply { description = "Alerts to take your medication" }
+            mgr.createNotificationChannel(ch)
+        }
+    }
+
+    private fun ensureNotifPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+            }
+        }
+    }
 
 
 
