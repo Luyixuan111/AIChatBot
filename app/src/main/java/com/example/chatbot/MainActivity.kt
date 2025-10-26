@@ -42,6 +42,22 @@ class MainActivity : AppCompatActivity() {
 
     private var autoCallTimer: android.os.CountDownTimer? = null
 
+    private val locationPermsLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val fineGranted = result[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = result[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (fineGranted || coarseGranted) {
+            // At least one location permission granted
+            openClinicsOnMapWithLocation()
+        } else {
+            // Both denied
+            appendBot("📍 Location not authorized. Opening map to search nearby clinics without location.")
+            openClinicsOnMapNoLocation()
+        }
+    }
+
 
     // ---------- Activity lifecycle ----------
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,8 +106,10 @@ class MainActivity : AppCompatActivity() {
                     drawerLayout.close(); true
                 }
                 R.id.nav_clinic -> {
+                    drawerLayout.close()
                     appendBot("🏥 Finding nearby clinics (demo).")
-                    drawerLayout.close(); true
+                    findNearbyClinics()
+                    true
                 }
                 else -> false
             }
@@ -684,8 +702,93 @@ class MainActivity : AppCompatActivity() {
         dlg.show()
     }
 
+    // map for the clinic
+    private val locationPermLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            openClinicsOnMapWithLocation()
+        } else {
+            appendBot("📍 Location not authorized. Opening map to search nearby clinics without location.")
+            openClinicsOnMapNoLocation()
+        }
+    }
+
+    private fun openClinicsOnMapNoLocation() {
+        val uri = android.net.Uri.parse("geo:0,0?q=clinic")
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+        intent.setPackage("com.google.android.apps.maps")
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {
+            intent.setPackage(null)
+            startActivity(intent)
+        }
+    }
 
 
-        private fun fakeReply(userText: String): String =
+    @Suppress("MissingPermission")
+    private fun openClinicsOnMapWithLocation() {
+        val fused = com.google.android.gms.location.LocationServices
+            .getFusedLocationProviderClient(this)
+
+        fused.lastLocation
+            .addOnSuccessListener { loc ->
+                if (loc != null) {
+                    val lat = loc.latitude
+                    val lng = loc.longitude
+                    // Use coordinates + search keyword for more accurate results
+                    val uri = android.net.Uri.parse("geo:$lat,$lng?q=clinic")
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                    intent.setPackage("com.google.android.apps.maps")
+                    try {
+                        startActivity(intent)
+                    } catch (_: Exception) {
+                        intent.setPackage(null)
+                        startActivity(intent)
+                    }
+                    appendBot("🏥 Searched for nearby clinics based on your current location.")
+                } else {
+                    // Fallback when location is unavailable
+                    appendBot("⚠️ Unable to get your location. Searching clinics based on city area instead.")
+                    openClinicsOnMapNoLocation()
+                }
+            }
+            .addOnFailureListener {
+                appendBot("⚠️ Failed to retrieve location. Opening map to search for nearby clinics.")
+                openClinicsOnMapNoLocation()
+            }
+    }
+
+
+    private fun findNearbyClinics() {
+        appendBot("🏥 Finding nearby clinics…")
+
+        val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (hasFine || hasCoarse) {
+            // already have permission
+            openClinicsOnMapWithLocation()
+        } else {
+            // request both permissions together
+            locationPermsLauncher.launch(arrayOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
+    }
+
+
+
+
+
+
+    private fun fakeReply(userText: String): String =
         "You said: “$userText”. (This AI focuses on elder health support.)"
 }
