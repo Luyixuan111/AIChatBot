@@ -4,4 +4,11 @@
     <string name="hint_input_hr">Please enter heart rate (bpm)</string>
     <string name="hint_input_bp_sys">Please enter systolic pressure (mmHg)</string>
     <string name="hint_input_bp_dia">Please enter diastolic pressure (mmHg)</string>
+    <string name="a11y_send">Send Message</string>
+    <string name="hint_bp">Blood Pressure (e.g. 120/80 mmHg)</string>
+    <string name="help_bp_format">Use "systolic/diastolic", e.g. 120/80</string>
+    <string name="hint_hr">Heart Rate (bpm)</string>
+    <string name="title_log_vitals">Log Vitals</string>
+    <string name="action_submit">Submit</string>
+    <string name="action_cancel">Cancel</string>
 </resources>

@@ -66,12 +66,12 @@
 
                 <EditText
                     android:id="@+id/messageInput"
+                    android:minHeight="48dp"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:hint="Message"
                     android:maxLines="4"
-                    android:minHeight="0dp"
                     android:background="@android:color/transparent"
                     android:inputType="textCapSentences|textMultiLine"
                     android:imeOptions="actionSend" />
@@ -82,6 +82,7 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     app:icon="@android:drawable/ic_menu_send"
+                    android:contentDescription="@string/a11y_send"
                     app:cornerRadius="24dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

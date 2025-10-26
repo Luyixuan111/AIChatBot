@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- 收缩压（上压） -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilSys"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Systolic Pressure (mmHg)">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etSys"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:minHeight="48dp"
+            android:textSize="18sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- 舒张压（下压） -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilDia"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Diastolic Pressure (mmHg)">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etDia"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:minHeight="48dp"
+            android:textSize="18sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- 心率（HR） -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilHr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Heart Rate (bpm)">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etHr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:minHeight="48dp"
+            android:textSize="18sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+</LinearLayout>

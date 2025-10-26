@@ -77,8 +77,9 @@ class MainActivity : AppCompatActivity() {
                     drawerLayout.close(); true
                 }
                 R.id.nav_vitals -> {
-                    appendBot("🩺 Let's record your vitals.")
-                    drawerLayout.close(); true
+                    drawerLayout.close()
+                    showVitalsDialog()
+                    true
                 }
                 R.id.nav_meds -> {
                     appendBot("💊 Medication reminders available here.")
@@ -640,9 +641,51 @@ class MainActivity : AppCompatActivity() {
         dlg.show()
     }
 
+    // log vitals
+    private fun showVitalsDialog() {
+        val content = layoutInflater.inflate(R.layout.dialog_vitals, null)
+
+        val etSys = content.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSys)
+        val etDia = content.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etDia)
+        val etHr  = content.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etHr)
+
+        val dlg = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Log Vitals")
+            .setView(content)
+            .setPositiveButton("Submit", null)
+            .setNegativeButton("Cancel") { d, _ -> d.dismiss() }
+            .create()
+
+        dlg.setOnShowListener {
+            val btnOk = dlg.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+            btnOk.setOnClickListener {
+                val sys = etSys.text?.toString()?.trim().orEmpty()
+                val dia = etDia.text?.toString()?.trim().orEmpty()
+                val hr  = etHr.text?.toString()?.trim().orEmpty()
+
+                if (sys.isEmpty() && dia.isEmpty() && hr.isEmpty()) {
+                    appendBot("⚠️ Please enter at least one value (BP or HR).")
+                    return@setOnClickListener
+                }
+
+                val parts = mutableListOf<String>()
+                if (sys.isNotEmpty() || dia.isNotEmpty()) {
+                    val sysDisplay = if (sys.isNotEmpty()) sys else "–"
+                    val diaDisplay = if (dia.isNotEmpty()) dia else "–"
+                    parts += "BP: $sysDisplay/$diaDisplay mmHg"
+                }
+                if (hr.isNotEmpty()) parts += "HR: $hr bpm"
+
+                appendBot("✅ Recorded vitals — ${parts.joinToString(" • ")}")
+                dlg.dismiss()
+            }
+        }
+
+        dlg.show()
+    }
 
 
 
-    private fun fakeReply(userText: String): String =
+        private fun fakeReply(userText: String): String =
         "You said: “$userText”. (This AI focuses on elder health support.)"
 }
