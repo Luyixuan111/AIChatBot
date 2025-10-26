@@ -1,5 +1,6 @@
 package com.example.chatbot
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -79,6 +80,8 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.open()
         }
 
+
+
         // Left side menu bar click event
         navView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
@@ -151,7 +154,14 @@ class MainActivity : AppCompatActivity() {
                 submitMessage(); true
             } else false
         }
+
+
+        ensureNotifChannel()
+        ensureNotifPermission()
+        // test for the notification
+//        chatList.postDelayed({ fireTestNotificationNow() }, 2000)
     }
+
 
     // ---------- Top-right menu ----------
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -799,14 +809,6 @@ class MainActivity : AppCompatActivity() {
 
 
     // Medicine reminder
-    private data class MedReminder(
-        val id: String = UUID.randomUUID().toString(),
-        val name: String,
-        val dose: String,
-        val hour: Int,      // 0..23
-        val minute: Int,    // 0..59
-        val days: Set<Int>  // 1=Mon .. 7=Sun
-    )
 
     private fun loadMedList(): MutableList<MedReminder> {
         val sp = getSharedPreferences("chatbot_prefs", MODE_PRIVATE)
@@ -873,6 +875,7 @@ class MainActivity : AppCompatActivity() {
                 val idx = list.indexOfFirst { it.id == item.id }
                 if (idx >= 0) {
                     list.removeAt(idx); saveMedList(list)
+                    ReminderScheduler.cancel(this@MainActivity, item)
                     val di = data.indexOfFirst { it.id == item.id }
                     if (di >= 0) { data.removeAt(di); rv.adapter?.notifyItemRemoved(di) }
                     appendBot("🗑️ Deleted reminder: ${item.name} ${item.dose}")
@@ -1006,6 +1009,7 @@ class MainActivity : AppCompatActivity() {
                 val idx = list.indexOfFirst { it.id == newItem.id }
                 if (idx >= 0) list[idx] = newItem else list.add(0, newItem)
                 saveMedList(list)
+                ReminderScheduler.scheduleOnce(this, newItem)
 
                 appendBot("✅ ${if (idx>=0) "Updated" else "Added"} reminder: ${newItem.name} ${newItem.dose} @ ${formatTime(newItem.hour,newItem.minute)} (${formatDays(newItem.days)})")
                 dlg.dismiss()
@@ -1037,7 +1041,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
+    private fun fireTestNotificationNow() {
+        val i = Intent(this, MedReminderReceiver::class.java).apply {
+            putExtra("id", "TEST_" + System.currentTimeMillis())
+            putExtra("name", "Test Pill")
+            putExtra("dose", "This is a test notification.")
+            putExtra("hour", 0)
+            putExtra("minute", 0)
+            putIntegerArrayListExtra("days", arrayListOf<Int>()) // one-time
+        }
+        sendBroadcast(i) // 直接触发 onReceive
+    }
 
     private fun fakeReply(userText: String): String =
         "You said: “$userText”. (This AI focuses on elder health support.)"
